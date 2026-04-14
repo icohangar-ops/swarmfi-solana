@@ -5,9 +5,10 @@
  *
  * Includes:
  * - SwarmFi logo + brand name
- * - Desktop navigation links
+ * - Desktop navigation links (including Bags $SWARM + Fees pages)
  * - WalletConnectButton (polished Phantom wallet integration)
  * - Arcium shield badge showing "Arcium Encrypted" status when connected
+ * - Bags partner badge
  * - Mobile hamburger menu with responsive layout
  */
 
@@ -26,12 +27,14 @@ import {
   Bot,
   Settings,
   Shield,
+  Coins,
 } from "lucide-react";
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/prediction-markets", label: "Markets", icon: BarChart3 },
-  { href: "/vaults", label: "Vaults", icon: Landmark },
+  { href: "/token", label: "$SWARM", icon: Coins },
+  { href: "/fees", label: "Fees", icon: Landmark },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -59,13 +62,16 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-1">
             {navLinks.map((link) => {
               const active = pathname === link.href;
+              const isBagsPage = link.href === "/token" || link.href === "/fees";
               return (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     active
-                      ? "bg-cyan-500/10 text-cyan-400"
+                      ? isBagsPage
+                        ? "bg-purple-500/10 text-purple-400"
+                        : "bg-cyan-500/10 text-cyan-400"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
                   }`}
                 >
@@ -76,18 +82,27 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Wallet + Arcium Badge */}
+          {/* Wallet + Badges */}
           <div className="flex items-center gap-2">
-            {/* Arcium Encrypted shield badge — shows when wallet is connected */}
+            {/* Arcium Encrypted shield badge */}
             {isConnected && (
               <div
                 className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 cursor-default"
                 title="Oracle data encrypted via Arcium Confidential Computing"
               >
                 <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-xs font-medium text-emerald-400">Arcium Encrypted</span>
+                <span className="text-xs font-medium text-emerald-400">Encrypted</span>
               </div>
             )}
+
+            {/* Bags partner badge */}
+            <div
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 cursor-default"
+              title="Partner on Bags Platform"
+            >
+              <Coins className="w-3.5 h-3.5 text-purple-400" />
+              <span className="text-xs font-medium text-purple-400">Bags</span>
+            </div>
 
             {/* Wallet Connect Button */}
             <WalletConnectButton />
@@ -109,6 +124,7 @@ export default function Navbar() {
           <div className="px-4 py-3 space-y-1">
             {navLinks.map((link) => {
               const active = pathname === link.href;
+              const isBagsPage = link.href === "/token" || link.href === "/fees";
               return (
                 <Link
                   key={link.href}
@@ -116,7 +132,9 @@ export default function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-all ${
                     active
-                      ? "bg-cyan-500/10 text-cyan-400"
+                      ? isBagsPage
+                        ? "bg-purple-500/10 text-purple-400"
+                        : "bg-cyan-500/10 text-cyan-400"
                       : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
                   }`}
                 >
@@ -126,13 +144,19 @@ export default function Navbar() {
               );
             })}
 
-            {/* Arcium badge in mobile nav */}
-            {isConnected && (
-              <div className="flex items-center gap-1.5 px-3 py-2">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-xs text-emerald-400">Arcium Encrypted</span>
+            {/* Badges in mobile nav */}
+            <div className="flex items-center gap-3 px-3 py-2">
+              {isConnected && (
+                <div className="flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-xs text-emerald-400">Encrypted</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5">
+                <Coins className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-xs text-purple-400">Bags</span>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )}

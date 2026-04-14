@@ -19,18 +19,18 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
 
-// ── Program IDs ────────────────────────────────────────────────────
+// ── Program IDs (devnet placeholder addresses) ───────────────────────
 export const SWARM_ORACLE_PROGRAM_ID = new PublicKey(
-  "FsWBMoA5x5bSaZGJGYeCsSWaaBGJ4eCqGMPbQnMBnKNp"
+  "11111111111111111111111111111112"
 );
 export const PREDICTION_MARKET_PROGRAM_ID = new PublicKey(
-  "PMkt1SxPMKp3f5xLKNJghKBBm9JvHZQCEMJKWGPn7x4D"
+  "11111111111111111111111111111113"
 );
 export const REPUTATION_REGISTRY_PROGRAM_ID = new PublicKey(
-  "RepRGhYwcxEhMaSnZ3dKLCg3xNPEBcbNBjGEoTBDFZv"
+  "11111111111111111111111111111114"
 );
 export const VAULT_MANAGER_PROGRAM_ID = new PublicKey(
-  "VltMgcHHAfKXkRBRyfzXhCZrN3NaE8kTGYhfPaCmjPQy"
+  "11111111111111111111111111111115"
 );
 
 // ── PDA Derivation Helpers ─────────────────────────────────────────
@@ -107,55 +107,55 @@ export function deriveVaultDepositPda(vaultId: number, depositor: PublicKey, pro
 // ── IDL stubs (simplified for devnet — full IDLs loaded from deployed programs) ──
 
 const ORACLE_IDL: anchor.Idl = {
-  version: "0.1.0",
-  name: "swarm_oracle",
+  address: SWARM_ORACLE_PROGRAM_ID.toBase58(),
+  metadata: { name: "swarm_oracle", version: "0.1.0", spec: "0.1.0" },
   instructions: [
-    { name: "initialize", accounts: [], args: [] },
-    { name: "register_agent", accounts: [], args: [] },
-    { name: "submit_price", accounts: [], args: [] },
-    { name: "submit_encrypted_price", accounts: [], args: [] },
-    { name: "run_consensus", accounts: [], args: [] },
-    { name: "submit_stigmergy_signal", accounts: [], args: [] },
-    { name: "slash_agent", accounts: [], args: [] },
-    { name: "update_agent_reputation", accounts: [], args: [] },
+    { name: "initialize", accounts: [], args: [], discriminator: [] },
+    { name: "register_agent", accounts: [], args: [], discriminator: [] },
+    { name: "submit_price", accounts: [], args: [], discriminator: [] },
+    { name: "submit_encrypted_price", accounts: [], args: [], discriminator: [] },
+    { name: "run_consensus", accounts: [], args: [], discriminator: [] },
+    { name: "submit_stigmergy_signal", accounts: [], args: [], discriminator: [] },
+    { name: "slash_agent", accounts: [], args: [], discriminator: [] },
+    { name: "update_agent_reputation", accounts: [], args: [], discriminator: [] },
   ],
   accounts: [
-    { name: "OracleConfig", }, { name: "AgentNode", },
-    { name: "PriceFeed", }, { name: "ConsensusRound", },
-    { name: "StigmergySignal", },
+    { name: "OracleConfig", discriminator: [] }, { name: "AgentNode", discriminator: [] },
+    { name: "PriceFeed", discriminator: [] }, { name: "ConsensusRound", discriminator: [] },
+    { name: "StigmergySignal", discriminator: [] },
   ],
 };
 
 const MARKET_IDL: anchor.Idl = {
-  version: "0.1.0",
-  name: "prediction_market",
+  address: PREDICTION_MARKET_PROGRAM_ID.toBase58(),
+  metadata: { name: "prediction_market", version: "0.1.0", spec: "0.1.0" },
   instructions: [
-    { name: "initialize", accounts: [], args: [] },
-    { name: "create_market", accounts: [], args: [] },
-    { name: "submit_prediction", accounts: [], args: [] },
-    { name: "resolve_market", accounts: [], args: [] },
-    { name: "claim_winnings", accounts: [], args: [] },
+    { name: "initialize", accounts: [], args: [], discriminator: [] },
+    { name: "create_market", accounts: [], args: [], discriminator: [] },
+    { name: "submit_prediction", accounts: [], args: [], discriminator: [] },
+    { name: "resolve_market", accounts: [], args: [], discriminator: [] },
+    { name: "claim_winnings", accounts: [], args: [], discriminator: [] },
   ],
   accounts: [
-    { name: "MarketConfig", }, { name: "Market" },
-    { name: "Prediction", }, { name: "Resolution" },
+    { name: "MarketConfig", discriminator: [] }, { name: "Market", discriminator: [] },
+    { name: "Prediction", discriminator: [] }, { name: "Resolution", discriminator: [] },
   ],
 };
 
 const VAULT_IDL: anchor.Idl = {
-  version: "0.1.0",
-  name: "vault_manager",
+  address: VAULT_MANAGER_PROGRAM_ID.toBase58(),
+  metadata: { name: "vault_manager", version: "0.1.0", spec: "0.1.0" },
   instructions: [
-    { name: "initialize", accounts: [], args: [] },
-    { name: "create_vault", accounts: [], args: [] },
-    { name: "deposit", accounts: [], args: [] },
-    { name: "withdraw", accounts: [], args: [] },
-    { name: "rebalance", accounts: [], args: [] },
+    { name: "initialize", accounts: [], args: [], discriminator: [] },
+    { name: "create_vault", accounts: [], args: [], discriminator: [] },
+    { name: "deposit", accounts: [], args: [], discriminator: [] },
+    { name: "withdraw", accounts: [], args: [], discriminator: [] },
+    { name: "rebalance", accounts: [], args: [], discriminator: [] },
   ],
   accounts: [
-    { name: "VaultConfig", }, { name: "Vault" },
-    { name: "VaultFunds", }, { name: "VaultDeposit" },
-    { name: "RebalanceRecord" },
+    { name: "VaultConfig", discriminator: [] }, { name: "Vault", discriminator: [] },
+    { name: "VaultFunds", discriminator: [] }, { name: "VaultDeposit", discriminator: [] },
+    { name: "RebalanceRecord", discriminator: [] },
   ],
 };
 
@@ -197,10 +197,10 @@ export function useAnchorPrograms() {
     }
 
     return {
-      oracle: new anchor.Program(ORACLE_IDL, SWARM_ORACLE_PROGRAM_ID, provider),
-      predictionMarket: new anchor.Program(MARKET_IDL, PREDICTION_MARKET_PROGRAM_ID, provider),
+      oracle: new anchor.Program(ORACLE_IDL, provider),
+      predictionMarket: new anchor.Program(MARKET_IDL, provider),
       reputation: null as anchor.Program | null, // Load when needed
-      vault: new anchor.Program(VAULT_IDL, VAULT_MANAGER_PROGRAM_ID, provider),
+      vault: new anchor.Program(VAULT_IDL, provider),
       provider,
     };
   }, [provider]);
@@ -261,7 +261,6 @@ export function lamportsToSol(lamports: number): number {
  */
 export function useSolanaConnection() {
   const { connection } = useConnection();
-  const { cluster } = useConnection(); // re-use to detect cluster
 
   function explorerUrl(signature: string): string {
     return `https://explorer.solana.com/tx/${signature}?cluster=devnet`;

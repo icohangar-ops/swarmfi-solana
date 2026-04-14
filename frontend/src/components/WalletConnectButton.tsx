@@ -106,7 +106,7 @@ export default function WalletConnectButton() {
         <span className="text-slate-300 font-mono text-xs">{truncatedAddress}</span>
 
         {/* Arcium badge */}
-        <Shield className="w-3.5 h-3.5 text-purple-400" title="Arcium Encrypted" />
+        <Shield className="w-3.5 h-3.5 text-purple-400" />
 
         {/* Chevron */}
         <ChevronDown

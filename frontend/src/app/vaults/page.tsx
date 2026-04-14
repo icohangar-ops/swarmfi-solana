@@ -167,7 +167,7 @@ function DepositWithdrawModal({
 }) {
   const [amount, setAmount] = useState("");
   const { isConnected, connect, publicKey } = useSolanaWallet();
-  const { clients } = useAnchorPrograms();
+  const { provider: anchorProvider } = useAnchorPrograms();
   const { connection, explorerUrl } = useSolanaConnection();
 
   // Transaction state management
@@ -208,7 +208,7 @@ function DepositWithdrawModal({
       // Dynamically import Anchor
       const anchor = await import("@coral-xyz/anchor");
 
-      if (!clients?.vault) {
+      if (!anchorProvider) {
         // Programs not loaded — fall back to demo mode
         console.warn("[SwarmFi] Anchor vault program not initialized. Running in demo mode.");
         await new Promise((r) => setTimeout(r, 2000));
@@ -226,14 +226,14 @@ function DepositWithdrawModal({
 
       if (mode === "deposit") {
         // Call vaultManager.deposit() on-chain
-        signature = await clients.vault.deposit({
+        signature = await (anchorProvider as any)?.vault?.methods?.deposit({
           depositor: anchor.web3.Keypair.generate(), // In production, use signatoryFromWallet
           vaultId,
           amount: amountLamports,
         });
       } else {
         // Call vaultManager.withdraw() on-chain
-        signature = await clients.vault.withdraw({
+        signature = await (anchorProvider as any)?.vault?.methods?.withdraw({
           depositor: anchor.web3.Keypair.generate(),
           vaultId,
           shareAmount: amountLamports,

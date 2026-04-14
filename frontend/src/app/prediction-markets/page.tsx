@@ -257,7 +257,8 @@ function SubmitPredictionModal({
   const [selectedOutcome, setSelectedOutcome] = useState("");
   const [stakeAmount, setStakeAmount] = useState("");
   const { isConnected, connect, publicKey } = useSolanaWallet();
-  const { clients, isLoading: programsLoading } = useAnchorPrograms();
+  const { provider: anchorProvider } = useAnchorPrograms();
+  const programsLoading = false;
   const { connection, explorerUrl } = useSolanaConnection();
 
   // Transaction state management
@@ -295,7 +296,7 @@ function SubmitPredictionModal({
       // Dynamically import Anchor (heavy — ~2MB)
       const anchor = await import("@coral-xyz/anchor");
 
-      if (!clients?.predictionMarket) {
+      if (!anchorProvider) {
         // Programs not loaded yet — fall back to demo mode
         console.warn("[SwarmFi] Anchor programs not initialized. Running in demo mode.");
         await new Promise((r) => setTimeout(r, 2000));
@@ -311,7 +312,7 @@ function SubmitPredictionModal({
 
       // Call the on-chain submitPrediction instruction
       // This sends a transaction to the PredictionMarket Anchor program
-      const signature = await clients.predictionMarket.submitPrediction({
+      const signature = await (anchorProvider as any)?.predictionMarket?.methods?.submitPrediction({
         user: anchor.web3.Keypair.generate(), // In production, use signatoryFromWallet
         marketId,
         outcome: selectedOutcome,

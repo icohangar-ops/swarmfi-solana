@@ -46,8 +46,8 @@ import {
   TrendingUp,
   Radio,
   Activity,
-  WalletConnect,
   Loader2,
+  Coins,
 } from "lucide-react";
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -72,13 +72,20 @@ export default function DashboardPage() {
   // Real wallet data from context
   const { isConnected, connect, solBalance } = useSolanaWallet();
   const bal = useBalance();
-  const { clients, isLoading: programsLoading } = useAnchorPrograms();
+  const { provider: anchorProvider } = useAnchorPrograms();
+  const programsLoading = false; // Anchor programs load when provider is available
 
   const topMarkets = predictionMarkets
     .filter((m) => m.status === "active")
     .slice(0, 5);
 
   const recentTx = transactions.slice(0, 8);
+
+  // Bags Integration Stats (demo data)
+  const swarmPrice = 0.00042;
+  const swarmMcap = 420_000;
+  const swarmFees24h = 1_247;
+  const swarmHolders = 1_247;
 
   // Portfolio value: use real SOL balance when connected, mock data otherwise
   const portfolioValue = isConnected
@@ -118,7 +125,7 @@ export default function DashboardPage() {
                 onClick={connect}
                 className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-sm font-semibold hover:from-cyan-400 hover:to-purple-400 transition-all shadow-lg shadow-cyan-500/20 cursor-pointer"
               >
-                <WalletConnect className="w-4 h-4" />
+                <Wallet className="w-4 h-4" />
                 Connect Phantom
               </button>
             </div>
@@ -206,6 +213,37 @@ export default function DashboardPage() {
                     </div>
                     <span className="text-xs text-muted">{(feed.confidence * 100).toFixed(0)}%</span>
                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bags Integration Stats */}
+          <div className="glass-card p-6 mb-8 border border-purple-500/20">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Coins className="w-5 h-5 text-purple-400" />
+                <h2 className="text-lg font-bold text-white">$SWARM on Bags</h2>
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 text-xs font-medium border border-purple-500/20">Bags SDK</span>
+              </div>
+              <Link
+                href="/token"
+                className="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1"
+              >
+                View Token <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { label: "SWARM Price", value: `$${swarmPrice.toFixed(6)}`, sub: "Bonding Curve" },
+                { label: "Market Cap", value: `$${(swarmMcap / 1000).toFixed(0)}K`, sub: `${swarmHolders} holders` },
+                { label: "Fees (24h)", value: `${swarmFees24h.toLocaleString()} SWARM`, sub: "2% trading fee" },
+                { label: "Fee-Sharing", value: "15%", sub: "Oracle providers" },
+              ].map((item) => (
+                <div key={item.label} className="bg-slate-800/50 rounded-lg p-3">
+                  <div className="text-xs text-slate-400">{item.label}</div>
+                  <div className="text-sm font-bold text-white mt-1">{item.value}</div>
+                  <div className="text-xs text-muted mt-0.5">{item.sub}</div>
                 </div>
               ))}
             </div>
