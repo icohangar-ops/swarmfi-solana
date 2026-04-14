@@ -33,4 +33,7 @@ pub enum ReputationError {
 
     #[msg("Already initialized")]
     AlreadyInitialized,
+
+    #[msg("Max badges reached (limit 20)")]
+    MaxBadgesReached,
 }

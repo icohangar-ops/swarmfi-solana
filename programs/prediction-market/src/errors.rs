@@ -58,6 +58,9 @@ pub enum MarketError {
     #[msg("Market already initialized")]
     AlreadyInitialized,
 
+    #[msg("Too many outcomes (max 10)")]
+    TooManyOutcomes,
+
     #[msg("No winnings to claim")]
     NoWinnings,
 

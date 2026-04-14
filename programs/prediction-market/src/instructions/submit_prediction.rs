@@ -96,7 +96,9 @@ pub fn handler(
     };
 
     // Store the prediction
+    let config = &mut ctx.accounts.config;
     prediction.id = config.prediction_count;
+    config.prediction_count += 1;
     prediction.market_id = market.id;
     prediction.outcome = outcome;
     prediction.user = ctx.accounts.user.key();
