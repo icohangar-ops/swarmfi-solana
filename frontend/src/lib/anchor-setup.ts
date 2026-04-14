@@ -242,3 +242,30 @@ export function useTransactionSender() {
 
   return { sendAndConfirm };
 }
+
+// ── Utility Functions ──────────────────────────────────────────────
+
+/** Convert SOL to lamports */
+export function solToLamports(sol: number): number {
+  return Math.floor(sol * 1_000_000_000);
+}
+
+/** Convert lamports to SOL */
+export function lamportsToSol(lamports: number): number {
+  return lamports / 1_000_000_000;
+}
+
+/**
+ * Returns the current Solana connection from wallet adapter context
+ * and a helper to build explorer URLs.
+ */
+export function useSolanaConnection() {
+  const { connection } = useConnection();
+  const { cluster } = useConnection(); // re-use to detect cluster
+
+  function explorerUrl(signature: string): string {
+    return `https://explorer.solana.com/tx/${signature}?cluster=devnet`;
+  }
+
+  return { connection, explorerUrl };
+}

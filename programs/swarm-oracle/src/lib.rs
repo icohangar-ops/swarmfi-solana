@@ -53,33 +53,6 @@ pub mod swarm_oracle {
         instructions::submit_price::handler(ctx, asset_pair, price, confidence)
     }
 
-    /// Agent submits an encrypted price via Arcium confidential computing.
-    ///
-    /// The encrypted payload, data hash, and encryption key are stored on-chain.
-    /// Raw price data is never exposed publicly — only revealed through
-    /// Arcium MPC consensus or authorized decryption.
-    ///
-    /// # Arguments
-    /// * `asset_pair` - Trading pair (e.g., "BTC/USDT"), max 32 bytes
-    /// * `encrypted_payload` - AES-GCM encrypted price data bytes (max 8KB)
-    /// * `data_hash` - SHA-256 hash of the plaintext for integrity verification
-    /// * `encryption_key` - ECDH public key used for key encapsulation
-    pub fn submit_encrypted_price(
-        ctx: Context<SubmitEncryptedPrice>,
-        asset_pair: String,
-        encrypted_payload: Vec<u8>,
-        data_hash: [u8; 32],
-        encryption_key: Pubkey,
-    ) -> Result<()> {
-        instructions::submit_encrypted_price::handler(
-            ctx,
-            asset_pair,
-            encrypted_payload,
-            data_hash,
-            encryption_key,
-        )
-    }
-
     /// Run a weighted consensus round and compute the median price.
     pub fn run_consensus(ctx: Context<RunConsensus>, asset_pair: String) -> Result<()> {
         instructions::consensus::handler(ctx, asset_pair)
