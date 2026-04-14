@@ -3,6 +3,9 @@
 //! Core AI swarm intelligence oracle for Solana.
 //! Agents register, stake SOL, submit prices, and participate in
 //! weighted-median consensus rounds with stigmergic coordination.
+//!
+//! Supports Arcium confidential computing for encrypted price submissions,
+//! enabling privacy-preserving oracle feeds via Multi-Party Computation (MPC).
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar;
@@ -14,6 +17,9 @@ pub mod state;
 
 use errors::*;
 use state::*;
+
+// Re-export the encrypted price instruction types
+pub use instructions::submit_encrypted_price::{EncryptedPriceParams, SubmitEncryptedPrice};
 
 declare_id!("FsWBMoA5x5bSaZGJGYeCsSWaaBGJ4eCqGMPbQnMBnKNp");
 
@@ -37,7 +43,7 @@ pub mod swarm_oracle {
         instructions::register_agent::handler(ctx, name, agent_type, stake_amount)
     }
 
-    /// Agent submits a price for an asset pair.
+    /// Agent submits a price for an asset pair (plaintext).
     pub fn submit_price(
         ctx: Context<SubmitPrice>,
         asset_pair: String,
@@ -45,6 +51,33 @@ pub mod swarm_oracle {
         confidence: u8,
     ) -> Result<()> {
         instructions::submit_price::handler(ctx, asset_pair, price, confidence)
+    }
+
+    /// Agent submits an encrypted price via Arcium confidential computing.
+    ///
+    /// The encrypted payload, data hash, and encryption key are stored on-chain.
+    /// Raw price data is never exposed publicly — only revealed through
+    /// Arcium MPC consensus or authorized decryption.
+    ///
+    /// # Arguments
+    /// * `asset_pair` - Trading pair (e.g., "BTC/USDT"), max 32 bytes
+    /// * `encrypted_payload` - AES-GCM encrypted price data bytes (max 8KB)
+    /// * `data_hash` - SHA-256 hash of the plaintext for integrity verification
+    /// * `encryption_key` - ECDH public key used for key encapsulation
+    pub fn submit_encrypted_price(
+        ctx: Context<SubmitEncryptedPrice>,
+        asset_pair: String,
+        encrypted_payload: Vec<u8>,
+        data_hash: [u8; 32],
+        encryption_key: Pubkey,
+    ) -> Result<()> {
+        instructions::submit_encrypted_price::handler(
+            ctx,
+            asset_pair,
+            encrypted_payload,
+            data_hash,
+            encryption_key,
+        )
     }
 
     /// Run a weighted consensus round and compute the median price.
@@ -76,6 +109,16 @@ pub mod swarm_oracle {
         reason: String,
     ) -> Result<()> {
         instructions::slash_agent::handler(ctx, deviation_bps, reason)
+    }
+
+    /// Submit an AES-GCM encrypted price for an asset pair.
+    /// The raw price is NOT stored on-chain — only the hash for verification.
+    /// Enables privacy-preserving oracle submissions via Arcium's MPC network.
+    pub fn submit_encrypted_price(
+        ctx: Context<SubmitEncryptedPrice>,
+        params: EncryptedPriceParams,
+    ) -> Result<()> {
+        instructions::submit_encrypted_price::handler(ctx, params)
     }
 
     /// Update an agent's reputation score (admin only).

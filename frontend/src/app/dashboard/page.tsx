@@ -1,8 +1,20 @@
 "use client";
 
+/**
+ * Dashboard Page — Enhanced with real wallet SOL balance display
+ *
+ * Changes:
+ * - Shows real SOL balance from wallet context in the Portfolio Value card
+ * - Displays "Connect Wallet to see portfolio" when disconnected
+ * - Uses useSolanaWallet() for live balance data
+ * - Uses useBalance() for formatted SOL/USD display
+ */
+
 import React, { useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/layout/Sidebar";
+import { useSolanaWallet, useBalance } from "@/lib/wallet";
+import { useAnchorPrograms } from "@/lib/anchor-setup";
 import {
   dashboardOverview,
   predictionMarkets,
@@ -34,6 +46,8 @@ import {
   TrendingUp,
   Radio,
   Activity,
+  WalletConnect,
+  Loader2,
 } from "lucide-react";
 
 const typeIcons: Record<string, React.ElementType> = {
@@ -55,11 +69,25 @@ const typeColors: Record<string, string> = {
 export default function DashboardPage() {
   const [chartMetric, setChartMetric] = useState<"agentCount" | "consensusLevel" | "signalStrength">("agentCount");
 
+  // Real wallet data from context
+  const { isConnected, connect, solBalance } = useSolanaWallet();
+  const bal = useBalance();
+  const { clients, isLoading: programsLoading } = useAnchorPrograms();
+
   const topMarkets = predictionMarkets
     .filter((m) => m.status === "active")
     .slice(0, 5);
 
   const recentTx = transactions.slice(0, 8);
+
+  // Portfolio value: use real SOL balance when connected, mock data otherwise
+  const portfolioValue = isConnected
+    ? `$${(solBalance * 175.42).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : `$${dashboardOverview.portfolioValue.toLocaleString()}`;
+
+  // Format balance string
+  const balanceStr = `${bal.balance} ${bal.symbol}`;
+  const usdValueStr = `≈ $${bal.usdValue}`;
 
   return (
     <div className="flex">
@@ -74,15 +102,46 @@ export default function DashboardPage() {
             </p>
           </div>
 
+          {/* Wallet connection prompt — shown when disconnected */}
+          {!isConnected && (
+            <div className="glass-card glow-cyan p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                <Wallet className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white">Connect Wallet to See Portfolio</h3>
+                <p className="text-sm text-slate-400 mt-1">
+                  Connect your Phantom wallet to view your real SOL balance, active positions, and on-chain activity across SwarmFi protocols.
+                </p>
+              </div>
+              <button
+                onClick={connect}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-sm font-semibold hover:from-cyan-400 hover:to-purple-400 transition-all shadow-lg shadow-cyan-500/20 cursor-pointer"
+              >
+                <WalletConnect className="w-4 h-4" />
+                Connect Phantom
+              </button>
+            </div>
+          )}
+
+          {/* Anchor programs loading indicator */}
+          {isConnected && programsLoading && (
+            <div className="glass-card p-4 mb-8 flex items-center gap-3 border border-cyan-500/20">
+              <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+              <span className="text-sm text-slate-300">Loading Anchor programs...</span>
+            </div>
+          )}
+
           {/* Overview Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[
               {
-                label: "Portfolio Value",
-                value: `$${dashboardOverview.portfolioValue.toLocaleString()}`,
+                label: isConnected ? "Wallet Balance" : "Portfolio Value",
+                value: isConnected ? balanceStr : portfolioValue,
                 icon: Wallet,
-                change: "+5.2%",
+                change: isConnected ? usdValueStr : "+5.2%",
                 positive: true,
+                subtitle: isConnected ? usdValueStr : undefined,
               },
               {
                 label: "Active Positions",
@@ -182,7 +241,7 @@ export default function DashboardPage() {
                   <button
                     key={m}
                     onClick={() => setChartMetric(m)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
                       chartMetric === m
                         ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30"
                         : "text-slate-400 hover:text-white"
@@ -378,3 +437,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+

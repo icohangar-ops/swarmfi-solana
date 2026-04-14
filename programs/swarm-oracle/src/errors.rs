@@ -57,4 +57,22 @@ pub enum OracleError {
 
     #[msg("Slash amount exceeds stake")]
     SlashExceedsStake,
+
+    #[msg("Encrypted payload is empty or exceeds maximum size (8KB)")]
+    InvalidEncryptedPayload,
+
+    #[msg("Data hash is invalid (all zeros)")]
+    InvalidDataHash,
+
+    #[msg("Ciphertext exceeds maximum length (512 bytes)")]
+    CiphertextTooLong,
+
+    #[msg("Ciphertext is empty")]
+    EmptyCiphertext,
+
+    #[msg("Invalid IV length (expected 12 bytes)")]
+    InvalidIvLength,
+
+    #[msg("Invalid encryption public key (expected 65 bytes for P-256)")]
+    InvalidEncryptionKey,
 }

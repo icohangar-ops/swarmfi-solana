@@ -1,20 +1,31 @@
 "use client";
 
+/**
+ * Navbar — Top navigation bar for SwarmFi
+ *
+ * Includes:
+ * - SwarmFi logo + brand name
+ * - Desktop navigation links
+ * - WalletConnectButton (polished Phantom wallet integration)
+ * - Arcium shield badge showing "Arcium Encrypted" status when connected
+ * - Mobile hamburger menu with responsive layout
+ */
+
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSolanaWallet } from "@/lib/wallet";
-import { useWalletModal } from "@solana/wallet-adapter-react-ui";
+import WalletConnectButton from "@/components/WalletConnectButton";
 import {
   Menu,
   X,
-  Wallet,
   Zap,
   LayoutDashboard,
   BarChart3,
   Landmark,
   Bot,
   Settings,
+  Shield,
 } from "lucide-react";
 
 const navLinks = [
@@ -27,26 +38,8 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { isConnected, address, disconnect, connect } = useSolanaWallet();
-  const { setVisible } = useWalletModal();
+  const { isConnected } = useSolanaWallet();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const truncatedAddress = address
-    ? `${address.slice(0, 4)}...${address.slice(-4)}`
-    : "";
-
-  const handleWalletClick = () => {
-    if (isConnected) {
-      disconnect();
-    } else {
-      // Try to use wallet modal first, fallback to our connect
-      try {
-        setVisible(true);
-      } catch {
-        connect();
-      }
-    }
-  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-0 border-b border-border">
@@ -83,24 +76,25 @@ export default function Navbar() {
             })}
           </div>
 
-          {/* Wallet */}
-          <div className="flex items-center gap-3">
+          {/* Wallet + Arcium Badge */}
+          <div className="flex items-center gap-2">
+            {/* Arcium Encrypted shield badge — shows when wallet is connected */}
             {isConnected && (
-              <span className="hidden sm:inline text-xs text-slate-400 font-mono bg-slate-800/50 px-2 py-1 rounded">
-                {truncatedAddress}
-              </span>
+              <div
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 cursor-default"
+                title="Oracle data encrypted via Arcium Confidential Computing"
+              >
+                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs font-medium text-emerald-400">Arcium Encrypted</span>
+              </div>
             )}
-            <button
-              onClick={handleWalletClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-sm font-semibold hover:from-cyan-400 hover:to-purple-400 transition-all shadow-lg shadow-cyan-500/20"
-            >
-              <Wallet className="w-4 h-4" />
-              {isConnected ? "Disconnect" : "Connect Phantom"}
-            </button>
+
+            {/* Wallet Connect Button */}
+            <WalletConnectButton />
 
             {/* Mobile hamburger */}
             <button
-              className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white"
+              className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white cursor-pointer"
               onClick={() => setMobileOpen(!mobileOpen)}
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -131,6 +125,14 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {/* Arcium badge in mobile nav */}
+            {isConnected && (
+              <div className="flex items-center gap-1.5 px-3 py-2">
+                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-xs text-emerald-400">Arcium Encrypted</span>
+              </div>
+            )}
           </div>
         </div>
       )}

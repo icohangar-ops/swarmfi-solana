@@ -1,6 +1,7 @@
 //! # SwarmFi Oracle — State Definitions
 //!
 //! All on-chain account structures used by the oracle program.
+//! Includes Arcium confidential computing fields for encrypted price submissions.
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
@@ -99,6 +100,11 @@ pub struct AgentNode {
 }
 
 /// A price feed submitted by an agent for a specific asset pair.
+///
+/// Supports both plaintext and Arcium-encrypted submissions:
+/// - When `is_encrypted == false`: `price` contains the actual price, `confidence` is 1-254
+/// - When `is_encrypted == true`: `price` is 0 (placeholder), `confidence` is 255 (sentinel),
+///   actual data is encrypted and verified via `data_hash`
 #[account]
 #[derive(InitSpace)]
 pub struct PriceFeed {
@@ -106,8 +112,10 @@ pub struct PriceFeed {
     #[max_len(MAX_ASSET_PAIR_LEN)]
     pub asset_pair: String,
     /// Price value (scaled by 1e8 for 8 decimal precision)
+    /// Set to 0 for encrypted submissions (actual price is encrypted)
     pub price: u64,
     /// Agent's confidence (0–255)
+    /// Special value: 255 = encrypted submission (Arcium confidential computing)
     pub confidence: u8,
     /// Agent that submitted the price
     pub agent: Pubkey,
@@ -119,6 +127,25 @@ pub struct PriceFeed {
     pub included_in_consensus: bool,
     /// Bump seed for the PDA
     pub bump: u8,
+
+    // ── Arcium Confidential Computing Fields ────────────────────────
+    // These fields support encrypted price submissions via Arcium's
+    // Multi-Party Computation (MPC) network on Solana.
+
+    /// Whether this price feed was submitted encrypted via Arcium
+    /// When true, the `price` field is a placeholder (0) and the
+    /// actual price data is encrypted off-chain
+    pub is_encrypted: bool,
+
+    /// SHA-256 hash of the encrypted data for integrity verification
+    /// Used to verify that the encrypted payload hasn't been tampered with
+    /// before Arcium MPC nodes process it for consensus computation
+    pub data_hash: [u8; 32],
+
+    /// The ECDH public key used for encrypting this price submission
+    /// Allows authorized parties (e.g., resolution agents) to decrypt
+    /// the data using the corresponding private key
+    pub encryption_key: Pubkey,
 }
 
 /// The result of a consensus round for an asset pair.
@@ -164,6 +191,42 @@ pub struct StigmergySignal {
     pub deposited_at: i64,
     /// Signal ID (auto-incrementing)
     pub signal_id: u64,
+    /// Bump seed for the PDA
+    pub bump: u8,
+}
+
+/// An encrypted price feed submitted by an agent.
+///
+/// Unlike PriceFeed, this stores the ciphertext hash instead of the raw price,
+/// enabling privacy-preserving oracle submissions via Arcium's MPC network.
+/// Only authorized consensus participants can decrypt the data off-chain.
+#[account]
+#[derive(InitSpace)]
+pub struct EncryptedPriceFeed {
+    /// Asset pair (e.g. "BTC/USDT")
+    #[max_len(MAX_ASSET_PAIR_LEN)]
+    pub asset_pair: String,
+    /// AES-GCM encrypted ciphertext (max 512 bytes)
+    #[max_len(512)]
+    pub ciphertext: Vec<u8>,
+    /// AES-GCM initialization vector (12 bytes)
+    #[max_len(12)]
+    pub iv: Vec<u8>,
+    /// SHA-256 hash of the original plaintext data
+    pub data_hash: [u8; 32],
+    /// ECDH encryption public key (65 bytes for uncompressed P-256)
+    #[max_len(65)]
+    pub encryption_key: Vec<u8>,
+    /// Agent's confidence (0–255)
+    pub confidence: u8,
+    /// Agent that submitted the encrypted price
+    pub agent: Pubkey,
+    /// Weight used in consensus (reputation * stake)
+    pub consensus_weight: u64,
+    /// Unix timestamp of submission
+    pub submitted_at: i64,
+    /// Whether this feed was included in the latest consensus
+    pub included_in_consensus: bool,
     /// Bump seed for the PDA
     pub bump: u8,
 }
