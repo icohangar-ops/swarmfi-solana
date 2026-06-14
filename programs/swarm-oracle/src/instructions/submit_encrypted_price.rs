@@ -116,7 +116,7 @@ pub fn handler(
     let consensus_weight = agent_node.reputation_score.saturating_mul(stake_sol.max(1));
 
     // Store the encrypted price feed (no raw price exposed on-chain)
-    encrypted_feed.asset_pair = params.asset_pair;
+    encrypted_feed.asset_pair = params.asset_pair.clone();
     encrypted_feed.ciphertext = params.ciphertext;
     encrypted_feed.iv = params.iv;
     encrypted_feed.data_hash = params.data_hash;
