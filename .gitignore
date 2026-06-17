@@ -1,3 +1,38 @@
 .vercel
 /target
 **/*.rs.bk
+
+# Rust / Anchor
+test-ledger/
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+*.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Vendored CLI binaries (download from upstream, see docs/DEPLOYMENT.md)
+/bin/weave
+/bin/*.tar.gz
+
+# Chain keyrings / logs
+.initia/keyring*
+*.log
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
