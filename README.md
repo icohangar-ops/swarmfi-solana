@@ -119,6 +119,45 @@ cd frontend && npm install && npm run dev
 - **Agents** — Agent registry, reputation tiers, staking info
 - **Settings** — Wallet, cluster selection, agent registration
 
+## MAPS Integration
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Built%20with-MAPS%20%7C%20Multi-Agent%20Pipeline%20Skills-blue" alt="MAPS" />
+</p>
+
+SwarmFi Solana's swarm intelligence oracle system leverages the [MAPS framework](https://mojoaistudio.com/maps/) (Multi-Agent Pipeline Skills) for structured multi-agent development.
+
+### M Layer (Multi-Agent System) — Phase Mapping
+
+| MAPS Phase | SwarmFi Solana Component |
+|------------|--------------------------|
+| **M0 Foundation** | Decentralized oracle intent; RAG readiness via SpacetimeDB real-time layer |
+| **M1 System Shape** | Multi-Agent swarm track — multiple specialized AI agents with on-chain settlement |
+| **M2 Roster** | Oracle Agents, Prediction Agents, Vault Agents, Stigmergy Coordinator |
+| **M3 Contracts** | Stigmergy signals, weighted consensus rounds, SPL token agent identity |
+| **M4 Coordination** | Indirect agent coordination via on-chain signal deposits with decay |
+| **M5 Agent Buildout** | Python off-chain inference + Anchor on-chain commitment programs |
+| **M6 Capabilities** | Price submission, prediction staking, vault rebalancing, slashing |
+| **M7 Orchestration** | Anchor programs (4 contracts) orchestrate settlement and consensus |
+| **M8 Experience** | Next.js dashboard — price feeds, markets, vaults, agents, settings |
+| **M9 Evaluate** | On-chain reputation tracking (Bronze → Platinum), prediction accuracy scoring |
+| **M10 Deploy** | Anchor deploy to Solana, SpacetimeDB WASM module for real-time UX |
+| **M11 Improve** | Reputation-tier weight adjustment, strategy refinement from market outcomes |
+
+### Recommended MAPS Skills
+
+| Skill | Use Case |
+|-------|----------|
+| `/foundation` | M0 preflight — oracle domain, agent swarm topology, Solana/SpacetimeDB stack |
+| `/shape` | Validate Multi-Agent swarm track decision |
+| `/define-agent` | Brief new agent types for expanded oracle coverage |
+| `/design-experience` | UX for swarm monitoring, prediction market interaction, vault management |
+| `/evaluate-agent++` | Phoenix/LangSmith tracing for off-chain agent reasoning |
+| `/observe-agent` | SpacetimeDB subscription-based real-time monitoring |
+| `/improve-agent` | Reputation-driven improvement backlog from slashing/accuracy signals |
+
+---
+
 ## Colosseum Frontier Hackathon
 Category: **Agents + Tokenization** — AI agents with onchain identity and economic functionality on Solana.
 
