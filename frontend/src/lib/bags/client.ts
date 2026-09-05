@@ -6,6 +6,7 @@
  */
 
 import { Connection, clusterApiUrl } from "@solana/web3.js";
+import { tracePrismLLM } from "@/lib/observability/prism";
 import type {
   TradeQuote,
   SwapTransaction,
@@ -79,6 +80,7 @@ export async function bagsApiRequest(
   endpoint: string,
   options?: RequestInit
 ): Promise<any> {
+  const started = Date.now();
   const apiKey = process.env.NEXT_PUBLIC_BAGS_API_KEY;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -98,7 +100,21 @@ export async function bagsApiRequest(
     throw new Error(error.error || `Bags API error: ${res.status}`);
   }
 
-  return res.json();
+  const body = await res.json();
+  void tracePrismLLM({
+    agentId: "swarmfi-solana",
+    agentName: "SwarmFi Bags Client",
+    model: "bags-api",
+    inputMessages: [
+      { role: "system", content: "Call the Bags API for SwarmFi." },
+      { role: "user", content: endpoint },
+    ],
+    output: JSON.stringify({ ok: true, endpoint }),
+    latencyMs: Date.now() - started,
+    metadata: { endpoint, method: options?.method || "GET" },
+  });
+
+  return body;
 }
 
 // ─── Trading Functions ────────────────────────────────────────────────

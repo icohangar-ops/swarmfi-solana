@@ -18,6 +18,7 @@ import { useConnection, useAnchorWallet } from "@solana/wallet-adapter-react";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { BN } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
+import { tracePrismLLM } from "@/lib/observability/prism";
 
 // ── Program IDs (devnet placeholder addresses) ───────────────────────
 export const SWARM_ORACLE_PROGRAM_ID = new PublicKey(
@@ -217,6 +218,7 @@ export function useTransactionSender() {
     tx: string | anchor.web3.Transaction,
     signers?: anchor.web3.Keypair[]
   ): Promise<{ signature: string; explorerUrl: string }> {
+    const started = Date.now();
     let signature: string;
 
     if (typeof tx === "string") {
@@ -233,6 +235,19 @@ export function useTransactionSender() {
     }
 
     await connection.confirmTransaction(signature, "confirmed");
+
+    void tracePrismLLM({
+      agentId: "swarmfi-solana",
+      agentName: "SwarmFi Transaction Sender",
+      model: "solana-tx",
+      inputMessages: [
+        { role: "system", content: "Send and confirm a Solana transaction." },
+        { role: "user", content: typeof tx === "string" ? tx : "serialized transaction" },
+      ],
+      output: signature,
+      latencyMs: Date.now() - started,
+      metadata: { signerCount: signers?.length || 0 },
+    });
 
     return {
       signature,

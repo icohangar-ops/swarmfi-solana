@@ -11,6 +11,10 @@ https://github.com/user-attachments/assets/demo.mp4
 
 > _Generated with [demo-video-generator](https://github.com/zan-maker/demo-video-generator)_
 
+## PRISMtrace
+
+Set `PRISMTRACE_API_KEY` and `PRISMTRACE_PROJECT_ID` to export Bags API and Solana transaction traces to BlockConvey.
+
 ## Screenshots
 
 | Page | Preview |
