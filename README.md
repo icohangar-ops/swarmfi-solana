@@ -203,5 +203,8 @@ github.com/zan-maker/swarmfi-solana
   consensus audits are already chain-verifiable per event — every round's
   consensus price is submitted on-chain (`agents/shared/chain_interface.py`
   `submit_price`) — so a session-level blob pointer would trade per-event
-  verifiability for cost. Reopens if a Sui-family venue is adopted or audits
-  move to session-granularity.
+  verifiability for cost. Reopens if any of the row's settled paths arrive: a
+  Sui-family venue is adopted (direct Walrus port); a blob layer arrives on
+  the current stack (IPFS or a Walrus-on-other-VM equivalent, per the
+  review's porting note); or audits move to session granularity, where the
+  per-event-verifiability condition no longer holds.
