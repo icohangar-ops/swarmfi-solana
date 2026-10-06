@@ -2,18 +2,18 @@
 
 use crate::error::ContractError;
 use crate::msg::{
-    DepositsResponse, DepositResponse, ExecuteMsg, InstantiateMsg, PerformancePoint,
-    QueryMsg, RebalanceEventResponse, RebalanceHistoryResponse, VaultPositionsResponse,
-    VaultResponse, VaultsResponse,
+    DepositResponse, DepositsResponse, ExecuteMsg, InstantiateMsg, QueryMsg, RebalanceEventResponse,
+    RebalanceHistoryResponse, VaultPositionsResponse, VaultResponse, VaultsResponse,
 };
 use crate::state::{
-    Config, RebalanceEvent, Vault, VaultDeposit, DEPOSITS, CONFIG, REBALANCE_COUNT,
-    REBALANCE_EVENTS, USER_VAULTS, VAULTS, VAULT_COUNT, WHITELISTED_AGENTS,
+    Config, PerformancePoint, RebalanceEvent, Vault, VaultDeposit, CONFIG, DEPOSITS,
+    REBALANCE_COUNT, REBALANCE_EVENTS, USER_VAULTS, VAULTS, VAULT_COUNT, WHITELISTED_AGENTS,
 };
 use cosmwasm_std::{
-    coin, to_json_binary, Addr, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo, Order,
-    Response, StdResult, Timestamp, Uint128,
+    coin, ensure, to_json_binary, Addr, BankMsg, Binary, Coin, Deps, DepsMut, Env, MessageInfo,
+    Order, Response, StdResult, Timestamp, Uint128,
 };
+use cw_storage_plus::Bound;
 
 // ── Instantiate ───────────────────────────────────────────────────
 
@@ -81,17 +81,23 @@ fn execute_create_vault(
     name: String,
     strategy_type: String,
 ) -> Result<Response, ContractError> {
-    // Validate strategy type.
-    match strategy_type.as_str() {
-        "Conservative" | "Balanced" | "Aggressive" => {}
-        _ => return Err(ContractError::InvalidStrategy {
+    if !matches!(
+        strategy_type.as_str(),
+        "Conservative" | "Balanced" | "Aggressive"
+    ) {
+        return Err(ContractError::InvalidStrategy {
             strategy: strategy_type,
-        }),
+        });
     }
 
     let vault_id = VAULT_COUNT.may_load(deps.storage)?.unwrap_or(0) + 1;
     VAULT_COUNT.save(deps.storage, &vault_id)?;
 
+    let risk_score = match strategy_type.as_str() {
+        "Conservative" => 1,
+        "Balanced" => 5,
+        _ => 9,
+    };
     let vault = Vault {
         id: vault_id,
         name,
@@ -101,11 +107,7 @@ fn execute_create_vault(
         total_value: Uint128::zero(),
         total_shares: Uint128::zero(),
         performance_history: vec![],
-        risk_score: match strategy_type.as_str() {
-            "Conservative" => 1,
-            "Balanced" => 5,
-            _ => 9,
-        },
+        risk_score,
         agent_count: 0,
         is_active: true,
         created_at: env.block.time,
@@ -428,20 +430,20 @@ fn execute_set_vault_active(
 
 // ── Query dispatch ────────────────────────────────────────────────
 
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
-        QueryMsg::GetVault { vault_id } => to_json_binary(&query_vault(deps, vault_id)?),
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
+    Ok(match msg {
+        QueryMsg::GetVault { vault_id } => to_json_binary(&query_vault(deps, vault_id)?)?,
         QueryMsg::ListVaults { start_after, limit } => {
-            to_json_binary(&query_list_vaults(deps, start_after, limit)?)
+            to_json_binary(&query_list_vaults(deps, start_after, limit)?)?
         }
         QueryMsg::GetVaultPositions { vault_id } => {
-            to_json_binary(&query_vault_positions(deps, vault_id)?)
+            to_json_binary(&query_vault_positions(deps, vault_id)?)?
         }
-        QueryMsg::GetUserPositions {
+        QueryMsg::GetUserDeposits {
             owner,
             start_after,
             limit,
-        } => to_json_binary(&query_user_deposits(deps, owner, start_after, limit)?),
+        } => to_json_binary(&query_user_deposits(deps, owner, start_after, limit)?)?,
         QueryMsg::GetRebalanceHistory {
             vault_id,
             start_after,
@@ -451,8 +453,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             vault_id,
             start_after,
             limit,
-        )?),
-    }
+        )?)?,
+    })
 }
 
 fn query_vault(deps: Deps, vault_id: u64) -> StdResult<VaultResponse> {
@@ -465,7 +467,14 @@ fn query_vault(deps: Deps, vault_id: u64) -> StdResult<VaultResponse> {
         assets: v.assets,
         total_value: v.total_value,
         total_shares: v.total_shares,
-        performance_history: v.performance_history,
+        performance_history: v
+            .performance_history
+            .into_iter()
+            .map(|point| crate::msg::PerformancePoint {
+                timestamp: point.timestamp,
+                value: point.value,
+            })
+            .collect(),
         risk_score: v.risk_score,
         agent_count: v.agent_count,
         is_active: v.is_active,
@@ -479,7 +488,7 @@ fn query_list_vaults(
     limit: Option<u32>,
 ) -> StdResult<VaultsResponse> {
     let limit = limit.unwrap_or(30) as usize;
-    let start = start_after.map(cosmwasm_std::Bound::inclusive_bound);
+    let start = start_after.map(Bound::<u64>::inclusive);
 
     let vaults: Vec<VaultResponse> = VAULTS
         .range(deps.storage, start, None, Order::Ascending)
@@ -493,7 +502,14 @@ fn query_list_vaults(
             assets: v.assets,
             total_value: v.total_value,
             total_shares: v.total_shares,
-            performance_history: v.performance_history,
+            performance_history: v
+                .performance_history
+                .into_iter()
+                .map(|point| crate::msg::PerformancePoint {
+                    timestamp: point.timestamp,
+                    value: point.value,
+                })
+                .collect(),
             risk_score: v.risk_score,
             agent_count: v.agent_count,
             is_active: v.is_active,
@@ -547,7 +563,7 @@ fn query_rebalance_history(
     limit: Option<u32>,
 ) -> StdResult<RebalanceHistoryResponse> {
     let limit = limit.unwrap_or(30) as usize;
-    let start = start_after.map(cosmwasm_std::Bound::inclusive_bound);
+    let start = start_after.map(Bound::<u64>::inclusive);
 
     let events: Vec<RebalanceEventResponse> = REBALANCE_EVENTS
         .range(deps.storage, start, None, Order::Descending)
@@ -568,5 +584,3 @@ fn query_rebalance_history(
 
     Ok(RebalanceHistoryResponse { events })
 }
-
-use cosmwasm_std::ensure;

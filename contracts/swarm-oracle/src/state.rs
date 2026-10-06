@@ -3,7 +3,7 @@
 //! On-chain state structures and storage layout.
 
 use cosmwasm_std::{Addr, Timestamp, Uint128};
-use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map};
+use cw_storage_plus::{Index, IndexList, IndexedMap, Item, Map, MultiIndex};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -36,20 +36,25 @@ pub struct Agent {
     pub registered_at: Timestamp,
 }
 
-// Secondary index helpers so we can iterate by name.
+// Secondary index so agents can be iterated by name. Names are not unique.
 pub struct AgentIndexes<'a> {
-    pub name: Index<'a, Agent, String>,
+    pub name: MultiIndex<'a, String, Agent, Addr>,
 }
 
 impl<'a> IndexList<Agent> for AgentIndexes<'a> {
-    fn get_indexes(&self) -> Box<dyn Iterator<Item = &'a dyn Index<Agent>> + '_> {
-        Box::new(vec![&self.name as &dyn Index<Agent>].into_iter())
+    fn get_indexes(&'_ self) -> Box<dyn Iterator<Item = &'_ dyn Index<Agent>> + '_> {
+        let v: Vec<&dyn Index<Agent>> = vec![&self.name];
+        Box::new(v.into_iter())
     }
 }
 
-pub fn agents<'a>() -> IndexedMap<'a, &'a Addr, Agent, AgentIndexes<'a>> {
+fn agent_name_idx(_pk: &[u8], agent: &Agent) -> String {
+    agent.name.clone()
+}
+
+pub fn agents<'a>() -> IndexedMap<&'a Addr, Agent, AgentIndexes<'a>> {
     let indexes = AgentIndexes {
-        name: Index::new(|a| a.name.clone(), "agents__name"),
+        name: MultiIndex::new(agent_name_idx, "agents", "agents__name"),
     };
     IndexedMap::new("agents", indexes)
 }

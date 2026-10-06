@@ -64,7 +64,7 @@ pub struct VaultDeposit {
 }
 
 /// Primary key: `(vault_id, depositor)`.
-pub const DEPOSITS: Map<(&u64, &Addr), VaultDeposit> = Map::new("deposits");
+pub const DEPOSITS: Map<(u64, &Addr), VaultDeposit> = Map::new("deposits");
 
 // ── User → list of vault ids they've deposited into ──────────────
 

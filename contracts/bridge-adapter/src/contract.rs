@@ -12,9 +12,10 @@ use crate::state::{
     TRANSFER_COUNT, TRANSFERS,
 };
 use cosmwasm_std::{
-    coin, ensure, to_json_binary, Addr, BankMsg, Binary, Deps, DepsMut, Env, MessageInfo,
-    Order, Response, StdResult, Timestamp, Uint128,
+    coin, ensure, to_json_binary, Addr, BankMsg, Binary, Deps, DepsMut, Env, MessageInfo, Order,
+    Response, StdResult, Timestamp, Uint128,
 };
+use cw_storage_plus::Bound;
 
 // ── Instantiate ───────────────────────────────────────────────────
 
@@ -273,19 +274,19 @@ fn execute_set_allowed_asset(
 
 // ── Query dispatch ────────────────────────────────────────────────
 
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
+    Ok(match msg {
         QueryMsg::GetTransfer { transfer_id } => {
-            to_json_binary(&query_transfer(deps, transfer_id)?)
+            to_json_binary(&query_transfer(deps, transfer_id)?)?
         }
         QueryMsg::ListTransfers {
             sender,
             status,
             start_after,
             limit,
-        } => to_json_binary(&query_list_transfers(deps, sender, status, start_after, limit)?),
-        QueryMsg::GetConfig => to_json_binary(&query_config(deps)?),
-    }
+        } => to_json_binary(&query_list_transfers(deps, sender, status, start_after, limit)?)?,
+        QueryMsg::GetConfig => to_json_binary(&query_config(deps)?)?,
+    })
 }
 
 fn query_transfer(deps: Deps, transfer_id: u64) -> StdResult<TransferResponse> {
@@ -313,7 +314,7 @@ fn query_list_transfers(
     limit: Option<u32>,
 ) -> StdResult<TransfersResponse> {
     let limit = limit.unwrap_or(30) as usize;
-    let start = start_after.map(cosmwasm_std::Bound::inclusive_bound);
+    let start = start_after.map(Bound::<u64>::inclusive);
 
     let transfers: Vec<TransferResponse> = TRANSFERS
         .range(deps.storage, start, None, Order::Descending)

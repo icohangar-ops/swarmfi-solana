@@ -16,6 +16,7 @@ use cosmwasm_std::{
     coin, ensure, entry_point, to_json_binary, Addr, BankMsg, Binary, Coin, Deps, DepsMut, Env,
     MessageInfo, Order as StdOrder, Response, StdResult, Timestamp, Uint128,
 };
+use cw_storage_plus::Bound;
 
 // ── Instantiate ───────────────────────────────────────────────────
 
@@ -118,7 +119,10 @@ fn execute_create_market(
 
     let config = CONFIG.load(deps.storage)?;
     let current_count = MARKET_COUNT.may_load(deps.storage)?.unwrap_or(0);
-    ensure!(current_count < config.max_markets, ContractError::MaxMarketsReached {});
+    ensure!(
+        current_count < u64::from(config.max_markets),
+        ContractError::MaxMarketsReached {}
+    );
 
     // Require initial liquidity deposit.
     let payment = info
@@ -126,7 +130,7 @@ fn execute_create_market(
         .iter()
         .find(|c| c.denom == "uinit")
         .cloned()
-        .unwrap_or(Coin::new(0, "uinit"));
+        .unwrap_or(Coin::new(0u128, "uinit"));
     ensure!(payment.amount >= config.min_liquidity, ContractError::InsufficientFunds {});
 
     let market_id = current_count + 1;
@@ -598,26 +602,26 @@ fn execute_update_config(
 
 // ── Query dispatch ────────────────────────────────────────────────
 
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
-        QueryMsg::GetMarket { market_id } => to_json_binary(&query_market(deps, market_id)?),
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
+    Ok(match msg {
+        QueryMsg::GetMarket { market_id } => to_json_binary(&query_market(deps, market_id)?)?,
         QueryMsg::ListMarkets { start_after, limit } => {
-            to_json_binary(&query_list_markets(deps, start_after, limit)?)
+            to_json_binary(&query_list_markets(deps, start_after, limit)?)?
         }
         QueryMsg::GetPosition {
             owner,
             market_id,
             outcome,
-        } => to_json_binary(&query_position(deps, owner, market_id, outcome)?),
+        } => to_json_binary(&query_position(deps, owner, market_id, outcome)?)?,
         QueryMsg::GetUserPositions {
             owner,
             start_after,
             limit,
-        } => to_json_binary(&query_user_positions(deps, owner, start_after, limit)?),
+        } => to_json_binary(&query_user_positions(deps, owner, start_after, limit)?)?,
         QueryMsg::GetMarketOrders { market_id } => {
-            to_json_binary(&query_market_orders(deps, market_id)?)
+            to_json_binary(&query_market_orders(deps, market_id)?)?
         }
-    }
+    })
 }
 
 fn query_market(deps: Deps, market_id: u64) -> StdResult<MarketResponse> {
@@ -644,7 +648,7 @@ fn query_list_markets(
     limit: Option<u32>,
 ) -> StdResult<MarketsResponse> {
     let limit = limit.unwrap_or(30) as usize;
-    let start = start_after.map(Bound::inclusive_bound);
+    let start = start_after.map(Bound::<u64>::inclusive);
 
     let markets: Vec<MarketResponse> = MARKETS
         .range(deps.storage, start, None, StdOrder::Ascending)
@@ -676,7 +680,7 @@ fn query_position(
     outcome: String,
 ) -> StdResult<PositionResponse> {
     let addr = deps.api.addr_validate(&owner)?;
-    let pos = POSITIONS.load(deps.storage, (&market_id, &addr, &outcome))?;
+    let pos = POSITIONS.load(deps.storage, (market_id, &addr, &outcome))?;
     Ok(PositionResponse {
         owner: pos.owner.to_string(),
         market_id: pos.market_id,
@@ -707,7 +711,7 @@ fn query_user_positions(
         // We need the outcomes to build keys. Load market.
         if let Ok(market) = MARKETS.load(deps.storage, mid) {
             for outcome in &market.outcomes {
-                if let Ok(pos) = POSITIONS.may_load(deps.storage, (&mid, &addr, outcome.as_str())) {
+                if let Ok(pos) = POSITIONS.may_load(deps.storage, (mid, &addr, outcome.as_str())) {
                     if let Some(p) = pos {
                         if !p.amount.is_zero() {
                             positions.push(PositionResponse {
@@ -748,5 +752,3 @@ fn query_market_orders(deps: Deps, market_id: u64) -> StdResult<OrdersResponse> 
 
     Ok(OrdersResponse { orders })
 }
-
-use cosmwasm_std::{Bound, Order as StdOrder};

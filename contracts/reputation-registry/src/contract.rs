@@ -10,9 +10,10 @@ use crate::state::{
     BADGE_COUNT, BADGES, CONFIG, USER_REPUTATIONS,
 };
 use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult,
-    Timestamp, Uint128,
+    ensure, to_json_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Order, Response,
+    StdResult, Timestamp, Uint128,
 };
+use cw_storage_plus::Bound;
 
 // ── Instantiate ───────────────────────────────────────────────────
 
@@ -168,7 +169,7 @@ fn execute_update_agent_tier(
     Ok(Response::new()
         .add_attribute("action", "update_agent_tier")
         .add_attribute("agent", &agent_addr)
-        .add_attribute("tier", tier.as_str()))
+        .add_attribute("tier", rep.tier.as_str()))
 }
 
 /// Award a badge to a user or agent.
@@ -305,24 +306,22 @@ fn execute_create_badge(
 
 // ── Query dispatch ────────────────────────────────────────────────
 
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
-    match msg {
+pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
+    Ok(match msg {
         QueryMsg::GetAgentReputation { agent } => {
-            to_json_binary(&query_agent_reputation(deps, agent)?)
+            to_json_binary(&query_agent_reputation(deps, agent)?)?
         }
         QueryMsg::GetUserReputation { address } => {
-            to_json_binary(&query_user_reputation(deps, address)?)
+            to_json_binary(&query_user_reputation(deps, address)?)?
         }
         QueryMsg::ListTopAgents { start_after, limit } => {
-            to_json_binary(&query_list_top_agents(deps, start_after, limit)?)
+            to_json_binary(&query_list_top_agents(deps, start_after, limit)?)?
         }
         QueryMsg::ListBadges { start_after, limit } => {
-            to_json_binary(&query_list_badges(deps, start_after, limit)?)
+            to_json_binary(&query_list_badges(deps, start_after, limit)?)?
         }
-        QueryMsg::GetUserBadges { address } => {
-            to_json_binary(&query_user_badges(deps, address)?)
-        }
-    }
+        QueryMsg::GetUserBadges { address } => to_json_binary(&query_user_badges(deps, address)?)?,
+    })
 }
 
 fn query_agent_reputation(deps: Deps, agent: String) -> StdResult<AgentReputationResponse> {
@@ -360,7 +359,7 @@ fn query_list_top_agents(
     let limit = limit.unwrap_or(20) as usize;
     let min_score = start_after.unwrap_or(1001);
 
-    let agents: Vec<AgentReputationResponse> = AGENT_REPUTATIONS
+    let agents: Vec<AgentReputation> = AGENT_REPUTATIONS
         .range(deps.storage, None, None, Order::Ascending)
         .filter_map(|item| item.ok().map(|(_, r)| r))
         .filter(|r| r.accuracy_score < min_score as u64)
@@ -393,7 +392,7 @@ fn query_list_badges(
     limit: Option<u32>,
 ) -> StdResult<BadgesResponse> {
     let limit = limit.unwrap_or(30) as usize;
-    let start = start_after.map(cosmwasm_std::Bound::inclusive_bound);
+    let start = start_after.map(Bound::<u64>::inclusive);
 
     let badges: Vec<BadgeResponse> = BADGES
         .range(deps.storage, start, None, Order::Ascending)
@@ -418,5 +417,3 @@ fn query_user_badges(deps: Deps, address: String) -> StdResult<UserBadgesRespons
         badge_ids: rep.badges,
     })
 }
-
-use cosmwasm_std::ensure;

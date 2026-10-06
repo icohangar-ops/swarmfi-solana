@@ -15,6 +15,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Deps, DepsMut, Env, MessageInfo, Order, Response, StdResult, Timestamp,
     Uint128,
 };
+use cw_storage_plus::Bound;
 
 // ── Instantiate ───────────────────────────────────────────────────
 
@@ -314,21 +315,19 @@ fn execute_update_config(
 
 // ── Query dispatch ────────────────────────────────────────────────
 
-pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<cosmwasm_std::Binary> {
-    match msg {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<cosmwasm_std::Binary, ContractError> {
+    Ok(match msg {
         QueryMsg::GetPrice { asset_pair } => {
             let sender = deps.api.addr_validate(&asset_pair)?; // misuse, but we need *some* address
             let _ = sender; // we actually just use the string key
-            to_json_binary(&query_price(deps, &asset_pair)?)
+            to_json_binary(&query_price(deps, &asset_pair)?)?
         }
-        QueryMsg::GetAgent { address } => {
-            to_json_binary(&query_agent(deps, address)?)
-        }
+        QueryMsg::GetAgent { address } => to_json_binary(&query_agent(deps, address)?)?,
         QueryMsg::ListAgents { start_after, limit } => {
-            to_json_binary(&query_list_agents(deps, start_after, limit)?)
+            to_json_binary(&query_list_agents(deps, start_after, limit)?)?
         }
         QueryMsg::GetConsensusPrice { asset_pair } => {
-            to_json_binary(&query_consensus_price(deps, env, &asset_pair)?)
+            to_json_binary(&query_consensus_price(deps, env, &asset_pair)?)?
         }
         QueryMsg::GetStigmergySignals {
             signal_type,
@@ -340,8 +339,8 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<cosmwasm_std::Bin
             signal_type,
             start_after,
             limit,
-        )?),
-    }
+        )?)?,
+    })
 }
 
 fn query_price(deps: Deps, asset_pair: &str) -> StdResult<PriceFeedResponse> {
@@ -354,9 +353,10 @@ fn query_price(deps: Deps, asset_pair: &str) -> StdResult<PriceFeedResponse> {
         .filter_map(|item| item.ok().map(|(_, v)| v))
         .collect();
 
-    let feed = feeds.into_iter().next().ok_or(cosmwasm_std::StdError::NotFound {
-        kind: "PriceFeed".to_string(),
-    })?;
+    let feed = feeds
+        .into_iter()
+        .next()
+        .ok_or_else(|| cosmwasm_std::StdError::not_found("PriceFeed"))?;
 
     Ok(PriceFeedResponse {
         asset_pair: feed.asset_pair,
@@ -395,7 +395,7 @@ fn query_list_agents(
         .transpose()?;
 
     let agents_list: Vec<AgentResponse> = agents()
-        .range(deps.storage, start.as_ref(), None, Order::Ascending)
+        .range(deps.storage, start.as_ref().map(Bound::inclusive), None, Order::Ascending)
         .take(limit)
         .filter_map(|item| item.ok())
         .map(|(_, a)| AgentResponse {
@@ -419,7 +419,7 @@ fn query_consensus_price(
     deps: Deps,
     env: Env,
     asset_pair: &str,
-) -> StdResult<ConsensusPriceResponse> {
+) -> Result<ConsensusPriceResponse, ContractError> {
     match CONSENSUS_PRICES.may_load(deps.storage, asset_pair)? {
         Some(c) => Ok(ConsensusPriceResponse {
             asset_pair: c.asset_pair,
@@ -438,9 +438,7 @@ fn query_consensus_price(
                     computed_at: c.computed_at,
                     confidence: c.confidence,
                 }),
-                None => Err(cosmwasm_std::StdError::NotFound {
-                    kind: "ConsensusPrice".to_string(),
-                }),
+                None => Err(cosmwasm_std::StdError::not_found("ConsensusPrice").into()),
             }
         }
     }
@@ -459,7 +457,7 @@ fn query_stigmergy_signals(
     let cutoff = env.block.time.minus_seconds(max_age);
 
     let signals: Vec<StigmergySignalResponse> = STIGMERGY_SIGNALS
-        .range(deps.storage, start_after.map(Bound::inclusive_bound), None, Order::Ascending)
+        .range(deps.storage, start_after.map(Bound::<u64>::inclusive), None, Order::Ascending)
         .take(limit)
         .filter_map(|item| item.ok().map(|(_, s)| s))
         .filter(|s| s.deposited_at > cutoff)
@@ -495,8 +493,6 @@ fn query_stigmergy_signals(
 }
 
 // ── Helpers ───────────────────────────────────────────────────────
-
-use cosmwasm_std::Bound;
 
 /// Attempt to compute a weighted-median consensus price for the given
 /// asset pair. Returns `None` if not enough recent, in-range submissions.

@@ -61,7 +61,7 @@ pub struct Position {
 }
 
 /// Primary key: `(market_id, owner, outcome)`.
-pub const POSITIONS: Map<(&u64, &Addr, &str), Position> = Map::new("positions");
+pub const POSITIONS: Map<(u64, &Addr, &str), Position> = Map::new("positions");
 
 // ── AMM Pool ──────────────────────────────────────────────────────
 
@@ -79,13 +79,13 @@ pub struct OutcomePool {
 }
 
 /// Key: `(market_id, outcome)`.
-pub const OUTCOME_POOLS: Map<(&u64, &str), OutcomePool> = Map::new("outcome_pools");
+pub const OUTCOME_POOLS: Map<(u64, &str), OutcomePool> = Map::new("outcome_pools");
 
 // ── LP Shares ─────────────────────────────────────────────────────
 
 /// LP share balance per (market, provider).
 /// Key: `(market_id, provider)`.
-pub const LP_SHARES: Map<(&u64, &Addr), Uint128> = Map::new("lp_shares");
+pub const LP_SHARES: Map<(u64, &Addr), Uint128> = Map::new("lp_shares");
 
 // ── Orders ────────────────────────────────────────────────────────
 
@@ -111,4 +111,4 @@ pub enum OrderSide {
 
 pub const ORDER_COUNT: Item<u64> = Item::new("order_count");
 /// Key: `(market_id, order_id)`.
-pub const ORDERS: Map<(&u64, u64), Order> = Map::new("orders");
+pub const ORDERS: Map<(u64, u64), Order> = Map::new("orders");

@@ -13,7 +13,6 @@ library = []
 [dependencies]
 cosmwasm-std     = { workspace = true }
 cosmwasm-schema  = { workspace = true }
-cosmwasm-storage = { workspace = true }
 cw-storage-plus  = { workspace = true }
 schemars         = { workspace = true }
 serde            = { workspace = true }
